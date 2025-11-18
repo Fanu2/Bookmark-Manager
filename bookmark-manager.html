@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Bookmark Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .bookmarks-section {
+            padding: 30px;
+            background: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .search-box {
+            margin-bottom: 30px;
+        }
+
+        .bookmarks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .bookmark-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .bookmark-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .bookmark-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .bookmark-url {
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 10px;
+            display: block;
+            word-break: break-all;
+        }
+
+        .bookmark-url:hover {
+            text-decoration: underline;
+        }
+
+        .bookmark-description {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .bookmark-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Bookmark Manager</h1>
+            <p class="subtitle">Save and organize your favorite web links</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Add Bookmark Form -->
+            <section class="form-section">
+                <h2>Add New Bookmark</h2>
+                <form id="bookmarkForm">
+                    <div class="form-group">
+                        <label for="title">Title *</label>
+                        <input type="text" id="title" required placeholder="Enter bookmark title">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="url">URL *</label>
+                        <input type="url" id="url" required placeholder="https://example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" rows="3" placeholder="Brief description (optional)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tags">Tags</label>
+                        <input type="text" id="tags" placeholder="work, research, personal (comma separated)">
+                    </div>
+
+                    <button type="submit" class="btn">💾 Save Bookmark</button>
+                </form>
+
+                <div class="stats">
+                    <div>Total: <span id="totalCount">0</span></div>
+                    <div id="lastSaved"></div>
+                </div>
+            </section>
+
+            <!-- Bookmarks Display -->
+            <section class="bookmarks-section">
+                <div class="search-box">
+                    <input type="text" id="search" placeholder="🔍 Search bookmarks by title, description, or tags...">
+                </div>
+
+                <div id="bookmarksList" class="bookmarks-grid">
+                    <div class="empty-state">
+                        <h3>No bookmarks yet</h3>
+                        <p>Add your first bookmark using the form on the left!</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        class BookmarkManager {
+            constructor() {
+                this.bookmarks = JSON.parse(localStorage.getItem('bookmarks')) || [];
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.renderBookmarks();
+                this.updateStats();
+            }
+
+            bindEvents() {
+                document.getElementById('bookmarkForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addBookmark();
+                });
+
+                document.getElementById('search').addEventListener('input', (e) => {
+                    this.filterBookmarks(e.target.value);
+                });
+            }
+
+            addBookmark() {
+                const title = document.getElementById('title').value.trim();
+                const url = document.getElementById('url').value.trim();
+                const description = document.getElementById('description').value.trim();
+                const tags = document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+                if (!title || !url) {
+                    alert('Please fill in at least title and URL');
+                    return;
+                }
+
+                const bookmark = {
+                    id: Date.now().toString(),
+                    title,
+                    url: this.ensureHttp(url),
+                    description,
+                    tags,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.bookmarks.unshift(bookmark);
+                this.saveToLocalStorage();
+                this.renderBookmarks();
+                this.updateStats();
+                this.clearForm();
+
+                // Show confirmation
+                document.getElementById('lastSaved').textContent = 'Just now';
+            }
+
+            ensureHttp(url) {
+                return url.startsWith('http') ? url : `https://${url}`;
+            }
+
+            deleteBookmark(id) {
+                if (confirm('Are you sure you want to delete this bookmark?')) {
+                    this.bookmarks = this.bookmarks.filter(bookmark => bookmark.id !== id);
+                    this.saveToLocalStorage();
+                    this.renderBookmarks();
+                    this.updateStats();
+                }
+            }
+
+            filterBookmarks(query) {
+                const filtered = this.bookmarks.filter(bookmark => 
+                    bookmark.title.toLowerCase().includes(query.toLowerCase()) ||
+                    bookmark.description.toLowerCase().includes(query.toLowerCase()) ||
+                    bookmark.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
+                );
+                this.renderBookmarks(filtered);
+            }
+
+            renderBookmarks(bookmarksToRender = this.bookmarks) {
+                const container = document.getElementById('bookmarksList');
+                
+                if (bookmarksToRender.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No bookmarks found</h3>
+                            <p>Try adjusting your search or add a new bookmark</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = bookmarksToRender.map(bookmark => `
+                    <div class="bookmark-card">
+                        <div class="bookmark-title">${this.escapeHtml(bookmark.title)}</div>
+                        <a href="${bookmark.url}" target="_blank" class="bookmark-url">${this.escapeHtml(bookmark.url)}</a>
+                        ${bookmark.description ? `<div class="bookmark-description">${this.escapeHtml(bookmark.description)}</div>` : ''}
+                        ${bookmark.tags.length > 0 ? `
+                            <div class="bookmark-tags">
+                                ${bookmark.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <button class="delete-btn" onclick="bookmarkManager.deleteBookmark('${bookmark.id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                document.getElementById('totalCount').textContent = this.bookmarks.length;
+            }
+
+            clearForm() {
+                document.getElementById('bookmarkForm').reset();
+            }
+
+            saveToLocalStorage() {
+                localStorage.setItem('bookmarks', JSON.stringify(this.bookmarks));
+            }
+
+            escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        }
+
+        // Initialize the bookmark manager
+        const bookmarkManager = new BookmarkManager();
+
+        // Add some sample data if empty (optional)
+        if (bookmarkManager.bookmarks.length === 0) {
+            setTimeout(() => {
+                if (confirm('Would you like to add some sample bookmarks to get started?')) {
+                    const samples = [
+                        {
+                            id: '1',
+                            title: 'GitHub',
+                            url: 'https://github.com',
+                            description: 'Code hosting platform for version control and collaboration',
+                            tags: ['development', 'coding', 'git'],
+                            createdAt: new Date().toISOString()
+                        },
+                        {
+                            id: '2',
+                            title: 'MDN Web Docs',
+                            url: 'https://developer.mozilla.org',
+                            description: 'Resources for developers by developers',
+                            tags: ['documentation', 'web', 'learning'],
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
+                    bookmarkManager.bookmarks = samples;
+                    bookmarkManager.saveToLocalStorage();
+                    bookmarkManager.renderBookmarks();
+                    bookmarkManager.updateStats();
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
