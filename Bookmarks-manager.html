@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Bookmark Manager</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --bg-card: #ffffff;
+      --bg-header: #111827;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --accent: #6366f1;
+      --accent-soft: #e0e7ff;
+      --danger: #ef4444;
+      --border: #e5e7eb;
+    }
+    body.dark {
+      --bg: #020617;
+      --bg-card: #020817;
+      --bg-header: #020617;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --accent-soft: #1e293b;
+      --border: #111827;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #4f46e5 0, #020617 40%, #020617 100%);
+      min-height: 100vh;
+      padding: 24px;
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      flex-direction: column;
+      min-height: 80vh;
+    }
+
+    header {
+      background: radial-gradient(circle at top left, #4f46e5, #020617);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header .title-block h1 {
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    header .title-block p {
+      font-size: 0.9rem;
+      color: rgba(209, 213, 219, 0.9);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.6);
+      font-size: 0.75rem;
+      color: #e5e7eb;
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .switch input {
+      display: none;
+    }
+    .switch-slider {
+      width: 38px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      transition: background 0.2s ease;
+    }
+    .switch-knob {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      transform: translateX(0);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .switch input:checked + .switch-slider {
+      background: #4ade80;
+    }
+    .switch input:checked + .switch-slider .switch-knob {
+      transform: translateX(18px);
+      background: #022c22;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    aside {
+      border-right: 1px solid var(--border);
+      background: linear-gradient(
+        180deg,
+        rgba(15, 23, 42, 0.9) 0%,
+        rgba(15, 23, 42, 0.95) 40%,
+        var(--bg-card) 40%,
+        var(--bg-card) 100%
+      );
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    .stats-card {
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 14px;
+      padding: 12px 12px 10px;
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .stat-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 10px;
+      padding: 6px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+    .stat-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      margin-top: 4px;
+    }
+
+    .folder-list {
+      list-style: none;
+      max-height: 220px;
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      padding: 4px;
+    }
+
+    .folder-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+    .folder-item:hover {
+      background: rgba(99, 102, 241, 0.08);
+    }
+    .folder-item.active {
+      background: var(--accent-soft);
+      color: #111827;
+    }
+
+    .folder-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .folder-count {
+      font-size: 0.75rem;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--text-muted);
+    }
+
+    .aside-buttons {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 6px 14px rgba(79, 70, 229, 0.5);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-main);
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      box-shadow: 0 6px 14px rgba(239, 68, 68, 0.4);
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-radius: 999px;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.25);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    main {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .top-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr);
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 14px;
+      padding: 12px 14px 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .card-header h2 {
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-header span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .field-group {
+      margin-bottom: 8px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 3px;
+      color: var(--text-muted);
+    }
+    .field-group input,
+    .field-group textarea,
+    .field-group select {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 7px 9px;
+      font-size: 0.85rem;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+    .field-group textarea {
+      resize: vertical;
+      min-height: 60px;
+      max-height: 120px;
+    }
+    .field-group input:focus,
+    .field-group textarea:focus,
+    .field-group select:focus {
+      outline: 2px solid rgba(99, 102, 241, 0.6);
+      outline-offset: 1px;
+      border-color: transparent;
+      background: #f9fafb;
+    }
+
+    .tags-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 3px;
+    }
+    .tag-suggestion {
+      font-size: 0.75rem;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: var(--bg-card);
+      color: var(--text-muted);
+    }
+    .tag-suggestion:hover {
+      background: var(--accent-soft);
+      color: #111827;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .toolbar input[type="text"] {
+      flex: 1;
+      min-width: 160px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 7px 10px;
+      font-size: 0.85rem;
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+    .toolbar select {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 7px 9px;
+      font-size: 0.8rem;
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .bulk-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .bulk-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bookmark-list {
+      margin-top: 4px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      padding: 4px;
+      max-height: calc(100vh - 260px);
+      overflow: auto;
+      background: var(--bg-card);
+    }
+
+    .bookmark-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      padding: 8px 9px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      margin: 2px 0;
+      cursor: grab;
+      background: linear-gradient(
+          to right,
+          rgba(148, 163, 184, 0.08),
+          transparent 40%
+        ),
+        var(--bg-card);
+      transition: background 0.12s ease, transform 0.08s ease,
+        box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+    .bookmark-card.dragging {
+      opacity: 0.6;
+      border-style: dashed;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    }
+    .bookmark-card:hover {
+      border-color: rgba(148, 163, 184, 0.8);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .bookmark-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bookmark-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .bookmark-title {
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .bookmark-folder-pill {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #111827;
+    }
+
+    .bookmark-url {
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+    .bookmark-url:hover {
+      text-decoration: underline;
+    }
+
+    .bookmark-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .bookmark-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #111827;
+    }
+
+    .bookmark-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 3px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .bookmark-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .checkbox input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 12px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .empty-state h3 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 14px;
+      padding: 16px 14px 14px;
+      max-width: 420px;
+      width: 100%;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.7);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .modal-header h3 {
+      font-size: 1rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      .stats-card {
+        flex: 1 1 100%;
+      }
+      .folder-list {
+        max-height: 140px;
+        flex: 1 1 100%;
+      }
+      .aside-buttons {
+        flex: 1 1 100%;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .top-row {
+        grid-template-columns: 1fr;
+      }
+      .bookmark-list {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <div class="title-block">
+        <h1>📚 Bookmark Manager <span class="chip">Local &amp; Offline</span></h1>
+        <p>Save, search, drag-drop, import/export and keep everything in folders.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="chip" id="statsChip">0 bookmarks • 0 folders</div>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle" />
+          <span class="switch-slider">
+            <span class="switch-knob"></span>
+          </span>
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <aside>
+        <div class="stats-card">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span>Snapshot</span>
+          </div>
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-pill">
+              <div class="stat-label">Bookmarks</div>
+              <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-label">Folders</div>
+              <div class="stat-value" id="statFolders">0</div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-label">Top tag</div>
+              <div class="stat-value" id="statTopTag">–</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sidebar-section-title">Folders</div>
+          <ul class="folder-list" id="folderList"></ul>
+        </div>
+
+        <div>
+          <div class="sidebar-section-title">Imports &amp; Sync</div>
+          <div class="aside-buttons">
+            <button class="btn btn-outline" id="importHtmlBtn">📥 Import HTML</button>
+            <input type="file" id="importHtmlInput" accept=".html" style="display:none" />
+
+            <button class="btn btn-outline" id="exportHtmlBtn">📤 Export HTML</button>
+
+            <button class="btn btn-outline" id="exportJsonBtn">☁️ Export JSON</button>
+            <button class="btn btn-outline" id="importJsonBtn">☁️ Import JSON</button>
+            <input type="file" id="importJsonInput" accept=".json" style="display:none" />
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <div class="top-row">
+          <div class="card">
+            <div class="card-header">
+              <h2>➕ Add Bookmark</h2>
+              <span id="lastSavedText"></span>
+            </div>
+            <form id="bookmarkForm">
+              <div class="field-group">
+                <label for="title">Title *</label>
+                <input type="text" id="title" required placeholder="e.g. MDN Web Docs" />
+              </div>
+              <div class="field-group">
+                <label for="url">URL *</label>
+                <input type="url" id="url" required placeholder="https://example.com" />
+              </div>
+              <div class="field-group">
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Optional notes"></textarea>
+              </div>
+              <div class="field-group">
+                <label for="tags">Tags (comma-separated)</label>
+                <input type="text" id="tags" placeholder="docs, javascript, css" />
+                <div class="tags-suggestions" id="tagsSuggestions"></div>
+              </div>
+              <div class="field-group">
+                <label for="folder">Folder</label>
+                <input type="text" id="folder" placeholder="e.g. Work, Learning, Personal" />
+              </div>
+              <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                <button type="submit" class="btn btn-primary">
+                  💾 Save bookmark
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>🔍 Search &amp; Sort</h2>
+            </div>
+            <div class="toolbar">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search by title, URL, description, tag or folder…"
+              />
+              <select id="sortSelect" title="Sort">
+                <option value="custom">Custom (drag-drop)</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="az">Title A → Z</option>
+                <option value="za">Title Z → A</option>
+              </select>
+            </div>
+            <div class="bulk-bar">
+              <div class="bulk-bar-left">
+                <label class="checkbox">
+                  <input type="checkbox" id="selectAllCheckbox" />
+                  <span>Select all</span>
+                </label>
+                <span id="selectedCountText">(0 selected)</span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-sm btn-outline" id="bulkMoveBtn">
+                  Move to folder
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" id="bulkDeleteBtn">
+                  Delete selected
+                </button>
+              </div>
+            </div>
+            <div class="bookmark-list" id="bookmarkList"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-backdrop" id="editModalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit bookmark</h3>
+        <button class="modal-close" id="editModalClose">&times;</button>
+      </div>
+      <form id="editForm">
+        <input type="hidden" id="editId" />
+        <div class="field-group">
+          <label for="editTitle">Title *</label>
+          <input type="text" id="editTitle" required />
+        </div>
+        <div class="field-group">
+          <label for="editUrl">URL *</label>
+          <input type="url" id="editUrl" required />
+        </div>
+        <div class="field-group">
+          <label for="editDescription">Description</label>
+          <textarea id="editDescription"></textarea>
+        </div>
+        <div class="field-group">
+          <label for="editTags">Tags (comma-separated)</label>
+          <input type="text" id="editTags" />
+        </div>
+        <div class="field-group">
+          <label for="editFolder">Folder</label>
+          <input type="text" id="editFolder" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="editCancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    class BookmarkManager {
+      constructor() {
+        this.bookmarks =
+          JSON.parse(localStorage.getItem("bookmarks_v2")) || [];
+        this.settings =
+          JSON.parse(localStorage.getItem("bm_settings")) || {
+            theme: "dark",
+            sort: "custom",
+          };
+        this.currentFolder = "ALL";
+        this.selection = new Set();
+        this.draggedId = null;
+        this.init();
+      }
+
+      init() {
+        // Theme
+        if (this.settings.theme === "dark") {
+          document.body.classList.add("dark");
+          document.getElementById("themeToggle").checked = true;
+        } else {
+          document.body.classList.remove("dark");
+          document.getElementById("themeToggle").checked = false;
+        }
+
+        // Ensure order & created fields exist
+        const now = Date.now();
+        this.bookmarks.forEach((b, idx) => {
+          if (!b.created) b.created = now - idx;
+          if (typeof b.order === "undefined") b.order = b.created;
+          if (!Array.isArray(b.tags)) b.tags = b.tags ? b.tags : [];
+          if (!b.folder) b.folder = "General";
+          if (typeof b.visitCount === "undefined") b.visitCount = 0;
+        });
+
+        // Bind events
+        this.bindEvents();
+
+        // Initial render
+        this.renderAll();
+      }
+
+      bindEvents() {
+        // Add form
+        document
+          .getElementById("bookmarkForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.addBookmark();
+          });
+
+        // Theme toggle
+        document
+          .getElementById("themeToggle")
+          .addEventListener("change", (e) => {
+            document.body.classList.toggle("dark", e.target.checked);
+            this.settings.theme = e.target.checked ? "dark" : "light";
+            this.saveSettings();
+          });
+
+        // Search
+        document
+          .getElementById("searchInput")
+          .addEventListener("input", () => this.renderList());
+
+        // Sort
+        const sortSelect = document.getElementById("sortSelect");
+        sortSelect.value = this.settings.sort || "custom";
+        sortSelect.addEventListener("change", (e) => {
+          this.settings.sort = e.target.value;
+          this.saveSettings();
+          this.renderList();
+        });
+
+        // Bulk selection
+        document
+          .getElementById("selectAllCheckbox")
+          .addEventListener("change", (e) => {
+            const visible = this.getVisibleBookmarks();
+            this.selection.clear();
+            if (e.target.checked) {
+              visible.forEach((b) => this.selection.add(b.id));
+            }
+            this.renderList();
+          });
+
+        document
+          .getElementById("bulkDeleteBtn")
+          .addEventListener("click", () => this.bulkDelete());
+
+        document
+          .getElementById("bulkMoveBtn")
+          .addEventListener("click", () => this.bulkMove());
+
+        // Import / export HTML
+        document
+          .getElementById("importHtmlBtn")
+          .addEventListener("click", () =>
+            document.getElementById("importHtmlInput").click()
+          );
+        document
+          .getElementById("importHtmlInput")
+          .addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) this.importFromHtml(file);
+          });
+        document
+          .getElementById("exportHtmlBtn")
+          .addEventListener("click", () => this.exportToHtml());
+
+        // JSON sync (manual)
+        document
+          .getElementById("exportJsonBtn")
+          .addEventListener("click", () => this.exportToJson());
+        document
+          .getElementById("importJsonBtn")
+          .addEventListener("click", () =>
+            document.getElementById("importJsonInput").click()
+          );
+        document
+          .getElementById("importJsonInput")
+          .addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) this.importFromJson(file);
+          });
+
+        // Tag suggestions
+        document
+          .getElementById("tags")
+          .addEventListener("input", () => this.renderTagSuggestions());
+
+        // Edit modal
+        const closeEdit = () => this.closeEditModal();
+        document
+          .getElementById("editModalClose")
+          .addEventListener("click", closeEdit);
+        document
+          .getElementById("editCancelBtn")
+          .addEventListener("click", closeEdit);
+        document
+          .getElementById("editModalBackdrop")
+          .addEventListener("click", (e) => {
+            if (e.target.id === "editModalBackdrop") closeEdit();
+          });
+        document
+          .getElementById("editForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.saveEdit();
+          });
+      }
+
+      // === Core helpers ===
+      save() {
+        localStorage.setItem("bookmarks_v2", JSON.stringify(this.bookmarks));
+      }
+
+      saveSettings() {
+        localStorage.setItem("bm_settings", JSON.stringify(this.settings));
+      }
+
+      ensureHttp(url) {
+        if (!url) return "";
+        if (/^https?:\/\//i.test(url)) return url;
+        return "https://" + url;
+      }
+
+      escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // === Add bookmark ===
+      addBookmark() {
+        const titleEl = document.getElementById("title");
+        const urlEl = document.getElementById("url");
+        const descEl = document.getElementById("description");
+        const tagsEl = document.getElementById("tags");
+        const folderEl = document.getElementById("folder");
+
+        const title = titleEl.value.trim();
+        const url = this.ensureHttp(urlEl.value.trim());
+        if (!title || !url) {
+          alert("Please provide at least a title and valid URL.");
+          return;
+        }
+
+        const tags = tagsEl.value
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+        const folder = folderEl.value.trim() || "General";
+        const created = Date.now();
+
+        const bookmark = {
+          id: created + "_" + Math.random().toString(36).slice(2),
+          title,
+          url,
+          description: descEl.value.trim(),
+          tags,
+          folder,
+          created,
+          order: created,
+          visitCount: 0,
+        };
+
+        this.bookmarks.unshift(bookmark);
+        this.save();
+        this.renderAll();
+
+        document.getElementById("bookmarkForm").reset();
+        document.getElementById("tagsSuggestions").innerHTML = "";
+
+        document.getElementById("lastSavedText").textContent = "Saved just now";
+        setTimeout(() => {
+          document.getElementById("lastSavedText").textContent = "";
+        }, 3000);
+      }
+
+      // === Editing ===
+      openEditModal(id) {
+        const bm = this.bookmarks.find((b) => b.id === id);
+        if (!bm) return;
+
+        document.getElementById("editId").value = bm.id;
+        document.getElementById("editTitle").value = bm.title;
+        document.getElementById("editUrl").value = bm.url;
+        document.getElementById("editDescription").value =
+          bm.description || "";
+        document.getElementById("editTags").value = (bm.tags || []).join(", ");
+        document.getElementById("editFolder").value = bm.folder || "General";
+
+        document
+          .getElementById("editModalBackdrop")
+          .classList.add("open");
+      }
+
+      closeEditModal() {
+        document
+          .getElementById("editModalBackdrop")
+          .classList.remove("open");
+      }
+
+      saveEdit() {
+        const id = document.getElementById("editId").value;
+        const bm = this.bookmarks.find((b) => b.id === id);
+        if (!bm) return;
+
+        const title = document.getElementById("editTitle").value.trim();
+        const url = this.ensureHttp(
+          document.getElementById("editUrl").value.trim()
+        );
+        if (!title || !url) {
+          alert("Title and URL are required.");
+          return;
+        }
+
+        bm.title = title;
+        bm.url = url;
+        bm.description =
+          document.getElementById("editDescription").value.trim();
+        bm.tags = document
+          .getElementById("editTags")
+          .value.split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+        bm.folder =
+          document.getElementById("editFolder").value.trim() || "General";
+
+        this.save();
+        this.renderAll();
+        this.closeEditModal();
+      }
+
+      // === Delete / bulk ===
+      deleteBookmark(id) {
+        if (!confirm("Delete this bookmark?")) return;
+        this.bookmarks = this.bookmarks.filter((b) => b.id !== id);
+        this.selection.delete(id);
+        this.save();
+        this.renderAll();
+      }
+
+      bulkDelete() {
+        if (this.selection.size === 0) {
+          alert("No bookmarks selected.");
+          return;
+        }
+        if (
+          !confirm(
+            `Delete ${this.selection.size} selected bookmark(s)? This cannot be undone.`
+          )
+        )
+          return;
+
+        this.bookmarks = this.bookmarks.filter(
+          (b) => !this.selection.has(b.id)
+        );
+        this.selection.clear();
+        document.getElementById("selectAllCheckbox").checked = false;
+        this.save();
+        this.renderAll();
+      }
+
+      bulkMove() {
+        if (this.selection.size === 0) {
+          alert("No bookmarks selected.");
+          return;
+        }
+        const folder = prompt("Move selected items to folder:", "General");
+        if (!folder) return;
+
+        this.bookmarks.forEach((b) => {
+          if (this.selection.has(b.id)) b.folder = folder.trim();
+        });
+        this.save();
+        this.renderAll();
+      }
+
+      // === Import / Export HTML ===
+      importFromHtml(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(e.target.result, "text/html");
+          const links = Array.from(doc.querySelectorAll("a[href]"));
+
+          if (links.length === 0) {
+            alert("No links found in HTML file.");
+            return;
+          }
+
+          let imported = 0;
+          const now = Date.now();
+          links.forEach((a, idx) => {
+            const url = this.ensureHttp(a.getAttribute("href"));
+            const title = a.textContent.trim() || url;
+            const bookmark = {
+              id: now + "_" + idx + "_" + Math.random().toString(36).slice(2),
+              title,
+              url,
+              description: "",
+              tags: [],
+              folder: "Imported",
+              created: now - idx,
+              order: now - idx,
+              visitCount: 0,
+            };
+            this.bookmarks.push(bookmark);
+            imported++;
+          });
+
+          this.save();
+          this.renderAll();
+          alert(`Imported ${imported} bookmark(s) from HTML.`);
+        };
+        reader.readAsText(file);
+      }
+
+      exportToHtml() {
+        const lines = [];
+        lines.push("<!DOCTYPE NETSCAPE-Bookmark-file-1>");
+        lines.push(
+          "<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\">"
+        );
+        lines.push("<TITLE>Bookmarks</TITLE>");
+        lines.push("<H1>Bookmarks</H1>");
+        lines.push("<DL><p>");
+
+        this.bookmarks.forEach((b) => {
+          const title = this.escapeHtml(b.title);
+          const url = this.escapeHtml(b.url);
+          lines.push(`<DT><A HREF="${url}">${title}</A>`);
+        });
+
+        lines.push("</DL><p>");
+
+        const blob = new Blob([lines.join("\n")], {
+          type: "text/html",
+        });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "bookmarks_export.html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      // === JSON sync (manual export/import) ===
+      exportToJson() {
+        const data = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          bookmarks: this.bookmarks,
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "bookmarks_backup.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      importFromJson(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (!data.bookmarks || !Array.isArray(data.bookmarks)) {
+              alert("Invalid JSON backup format.");
+              return;
+            }
+            if (
+              !confirm(
+                "Importing a backup will replace your current bookmarks. Continue?"
+              )
+            )
+              return;
+            this.bookmarks = data.bookmarks;
+            this.save();
+            this.renderAll();
+            alert("JSON backup imported.");
+          } catch (err) {
+            console.error(err);
+            alert("Failed to parse JSON file.");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // === Tag suggestions ===
+      getAllTags() {
+        const tags = new Map();
+        this.bookmarks.forEach((b) => {
+          (b.tags || []).forEach((t) => {
+            if (!t) return;
+            tags.set(t, (tags.get(t) || 0) + 1);
+          });
+        });
+        return tags;
+      }
+
+      renderTagSuggestions() {
+        const input = document.getElementById("tags").value;
+        const base = input.split(",").map((p) => p.trim());
+        const current = base[base.length - 1] || "";
+
+        const suggestionsEl = document.getElementById("tagsSuggestions");
+        suggestionsEl.innerHTML = "";
+        if (!current) return;
+
+        const tagsMap = this.getAllTags();
+        const matches = Array.from(tagsMap.keys())
+          .filter((t) =>
+            t.toLowerCase().includes(current.toLowerCase())
+          )
+          .slice(0, 6);
+
+        matches.forEach((tag) => {
+          const span = document.createElement("span");
+          span.className = "tag-suggestion";
+          span.textContent = tag;
+          span.addEventListener("click", () => {
+            base[base.length - 1] = tag;
+            const newVal = base.filter(Boolean).join(", ");
+            document.getElementById("tags").value = newVal + ", ";
+            suggestionsEl.innerHTML = "";
+          });
+          suggestionsEl.appendChild(span);
+        });
+      }
+
+      // === List & folders ===
+      getVisibleBookmarks() {
+        const search = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const folder = this.currentFolder;
+
+        let list = this.bookmarks.slice();
+
+        if (folder !== "ALL") {
+          list = list.filter(
+            (b) => (b.folder || "General") === folder
+          );
+        }
+
+        if (search) {
+          list = list.filter((b) => {
+            const stack = [
+              b.title,
+              b.url,
+              b.description,
+              b.folder,
+              ...(b.tags || []),
+            ]
+              .join(" ")
+              .toLowerCase();
+            return stack.includes(search);
+          });
+        }
+
+        const sortMode =
+          document.getElementById("sortSelect").value || "custom";
+        if (sortMode === "custom") {
+          list.sort((a, b) => b.order - a.order);
+        } else if (sortMode === "newest") {
+          list.sort((a, b) => b.created - a.created);
+        } else if (sortMode === "oldest") {
+          list.sort((a, b) => a.created - b.created);
+        } else if (sortMode === "az") {
+          list.sort((a, b) => a.title.localeCompare(b.title));
+        } else if (sortMode === "za") {
+          list.sort((a, b) => b.title.localeCompare(a.title));
+        }
+
+        return list;
+      }
+
+      renderList() {
+        const list = this.getVisibleBookmarks();
+        const container = document.getElementById("bookmarkList");
+        const selectedCount = this.selection.size;
+        document.getElementById(
+          "selectedCountText"
+        ).textContent = `(${selectedCount} selected)`;
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h3>No bookmarks</h3>
+              <p>Add some using the form on the left, or import an HTML/JSON file.</p>
+            </div>`;
+          return;
+        }
+
+        const sortMode = document.getElementById("sortSelect").value;
+        const dragEnabled = sortMode === "custom";
+
+        container.innerHTML = "";
+        list.forEach((b) => {
+          const card = document.createElement("div");
+          card.className = "bookmark-card";
+          card.dataset.id = b.id;
+          if (dragEnabled) card.draggable = true;
+
+          // Drag & drop
+          if (dragEnabled) {
+            card.addEventListener("dragstart", (e) => {
+              this.draggedId = b.id;
+              card.classList.add("dragging");
+              e.dataTransfer.effectAllowed = "move";
+            });
+            card.addEventListener("dragend", () => {
+              card.classList.remove("dragging");
+              this.draggedId = null;
+            });
+            card.addEventListener("dragover", (e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              card.style.borderColor =
+                "rgba(99, 102, 241, 0.7)";
+            });
+            card.addEventListener("dragleave", () => {
+              card.style.borderColor = "transparent";
+            });
+            card.addEventListener("drop", (e) => {
+              e.preventDefault();
+              card.style.borderColor = "transparent";
+              if (!this.draggedId || this.draggedId === b.id) return;
+              this.reorder(this.draggedId, b.id);
+            });
+          }
+
+          const mainDiv = document.createElement("div");
+          mainDiv.className = "bookmark-main";
+
+          const titleRow = document.createElement("div");
+          titleRow.className = "bookmark-title-row";
+
+          const title = document.createElement("div");
+          title.className = "bookmark-title";
+          title.textContent = b.title || "(untitled)";
+
+          const folderPill = document.createElement("span");
+          folderPill.className = "bookmark-folder-pill";
+          folderPill.textContent = b.folder || "General";
+
+          titleRow.appendChild(title);
+          titleRow.appendChild(folderPill);
+
+          const link = document.createElement("a");
+          link.className = "bookmark-url";
+          link.href = b.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = b.url;
+          link.addEventListener("click", () => {
+            b.visitCount = (b.visitCount || 0) + 1;
+            this.save();
+            this.renderStats(); // update visit stats if needed
+          });
+
+          mainDiv.appendChild(titleRow);
+          mainDiv.appendChild(link);
+
+          if (b.description) {
+            const desc = document.createElement("div");
+            desc.className = "bookmark-desc";
+            desc.textContent = b.description;
+            mainDiv.appendChild(desc);
+          }
+
+          if (b.tags && b.tags.length > 0) {
+            const tagsDiv = document.createElement("div");
+            tagsDiv.className = "bookmark-tags";
+            b.tags.forEach((t) => {
+              const span = document.createElement("span");
+              span.className = "tag";
+              span.textContent = t;
+              tagsDiv.appendChild(span);
+            });
+            mainDiv.appendChild(tagsDiv);
+          }
+
+          const metaRow = document.createElement("div");
+          metaRow.className = "bookmark-meta-row";
+          const date = new Date(b.created || Date.now());
+          metaRow.innerHTML = `<span>Added ${date.toLocaleDateString()}</span><span>Opened ${
+            b.visitCount || 0
+          }×</span>`;
+
+          mainDiv.appendChild(metaRow);
+
+          const actionsDiv = document.createElement("div");
+          actionsDiv.className = "bookmark-actions";
+
+          const checkboxLabel = document.createElement("label");
+          checkboxLabel.className = "checkbox";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = this.selection.has(b.id);
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) this.selection.add(b.id);
+            else this.selection.delete(b.id);
+            document.getElementById(
+              "selectedCountText"
+            ).textContent = `(${this.selection.size} selected)`;
+            if (!checkbox.checked) {
+              document.getElementById(
+                "selectAllCheckbox"
+              ).checked = false;
+            }
+          });
+          checkboxLabel.appendChild(checkbox);
+          checkboxLabel.appendChild(document.createTextNode("Select"));
+          actionsDiv.appendChild(checkboxLabel);
+
+          const btnRow = document.createElement("div");
+          btnRow.style.display = "flex";
+          btnRow.style.gap = "4px";
+
+          const editBtn = document.createElement("button");
+          editBtn.type = "button";
+          editBtn.className = "btn btn-sm btn-outline";
+          editBtn.textContent = "Edit";
+          editBtn.addEventListener("click", () =>
+            this.openEditModal(b.id)
+          );
+
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "btn btn-sm btn-danger";
+          delBtn.textContent = "Delete";
+          delBtn.addEventListener("click", () =>
+            this.deleteBookmark(b.id)
+          );
+
+          btnRow.appendChild(editBtn);
+          btnRow.appendChild(delBtn);
+          actionsDiv.appendChild(btnRow);
+
+          card.appendChild(mainDiv);
+          card.appendChild(actionsDiv);
+          container.appendChild(card);
+        });
+      }
+
+      reorder(draggedId, targetId) {
+        const list = this.getVisibleBookmarks();
+        const draggedIndex = list.findIndex((b) => b.id === draggedId);
+        const targetIndex = list.findIndex((b) => b.id === targetId);
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const idOrder = list.map((b) => b.id);
+        const [removed] = idOrder.splice(draggedIndex, 1);
+        idOrder.splice(targetIndex, 0, removed);
+
+        const baseTime = Date.now();
+        idOrder.forEach((id, idx) => {
+          const bm = this.bookmarks.find((b) => b.id === id);
+          if (bm) bm.order = baseTime - idx;
+        });
+
+        this.save();
+        this.renderList();
+      }
+
+      renderFolders() {
+        const folderListEl = document.getElementById("folderList");
+        const folderCounts = new Map();
+        this.bookmarks.forEach((b) => {
+          const f = b.folder || "General";
+          folderCounts.set(f, (folderCounts.get(f) || 0) + 1);
+        });
+
+        const folders = Array.from(folderCounts.entries()).sort(
+          (a, b) => a[0].localeCompare(b[0])
+        );
+
+        folderListEl.innerHTML = "";
+
+        const makeItem = (name, count, key) => {
+          const li = document.createElement("li");
+          li.className =
+            "folder-item" +
+            (this.currentFolder === key ? " active" : "");
+          li.addEventListener("click", () => {
+            this.currentFolder = key;
+            this.selection.clear();
+            document.getElementById(
+              "selectAllCheckbox"
+            ).checked = false;
+            this.renderAll();
+          });
+          const nameSpan = document.createElement("div");
+          nameSpan.className = "folder-name";
+          nameSpan.innerHTML =
+            key === "ALL"
+              ? "📁 All bookmarks"
+              : "📂 " + this.escapeHtml(name);
+
+          const countSpan = document.createElement("span");
+          countSpan.className = "folder-count";
+          countSpan.textContent = count;
+
+          li.appendChild(nameSpan);
+          li.appendChild(countSpan);
+          return li;
+        };
+
+        const totalCount = this.bookmarks.length;
+        folderListEl.appendChild(makeItem("All", totalCount, "ALL"));
+        folders.forEach(([name, count]) => {
+          folderListEl.appendChild(makeItem(name, count, name));
+        });
+      }
+
+      renderStats() {
+        const total = this.bookmarks.length;
+        const folderSet = new Set(
+          this.bookmarks.map((b) => b.folder || "General")
+        );
+        const tagsMap = this.getAllTags();
+        let topTag = "–";
+        if (tagsMap.size > 0) {
+          const sorted = Array.from(tagsMap.entries()).sort(
+            (a, b) => b[1] - a[1]
+          );
+          topTag = `${sorted[0][0]} (${sorted[0][1]})`;
+        }
+
+        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statFolders").textContent =
+          folderSet.size;
+        document.getElementById("statTopTag").textContent = topTag;
+        document.getElementById(
+          "statsChip"
+        ).textContent = `${total} bookmark${total === 1 ? "" : "s"} • ${
+          folderSet.size
+        } folder${folderSet.size === 1 ? "" : "s"}`;
+      }
+
+      renderAll() {
+        this.renderFolders();
+        this.renderStats();
+        this.renderList();
+      }
+    }
+
+    const manager = new BookmarkManager();
+  </script>
+</body>
+</html>
+
