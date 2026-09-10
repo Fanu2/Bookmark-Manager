@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jass Bookmark Vault</title>
+<style>
+:root{
+  --bg:#eef2ff;--panel:#fff;--panel2:#f8fafc;--header:#0f172a;--text:#0f172a;
+  --muted:#64748b;--accent:#6366f1;--accent2:#4f46e5;--soft:#e0e7ff;
+  --border:#e2e8f0;--danger:#ef4444;--warn:#f59e0b;--success:#16a34a;
+  --shadow:0 12px 30px rgba(15,23,42,.08);
+}
+body.dark{
+  --bg:#020617;--panel:#0b1220;--panel2:#111827;--header:#020617;--text:#e5e7eb;
+  --muted:#94a3b8;--soft:#1e293b;--border:#243244;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  min-height:100vh;padding:18px;color:var(--text);
+  background:radial-gradient(circle at top,#4338ca 0,#0f172a 38%,#020617 100%);
+}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:1450px;margin:auto;min-height:calc(100vh - 36px);background:var(--bg);
+ border:1px solid rgba(148,163,184,.3);border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(2,6,23,.55)}
+header{background:radial-gradient(circle at 0 0,#4f46e5,#020617 68%);color:white;padding:18px 22px;
+ display:flex;justify-content:space-between;gap:18px;align-items:center}
+.brand h1{font-size:1.55rem}.brand p{font-size:.82rem;color:#cbd5e1;margin-top:3px}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{border:1px solid rgba(255,255,255,.2);background:rgba(15,23,42,.55);padding:5px 9px;border-radius:999px;font-size:.72rem}
+.layout{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 140px)}
+aside{background:var(--panel);border-right:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:14px}
+.stats{background:linear-gradient(145deg,#111827,#1e293b);color:#e5e7eb;border-radius:14px;padding:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:9px}
+.stat{border:1px solid #334155;border-radius:9px;padding:7px}.stat small{display:block;color:#94a3b8}.stat strong{font-size:1rem}
+.section-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:2px 4px 6px}
+.nav-list{list-style:none;max-height:280px;overflow:auto}.nav-item{display:flex;align-items:center;justify-content:space-between;padding:8px 9px;border-radius:9px;font-size:.82rem}
+.nav-item:hover,.nav-item.active{background:var(--soft)}.nav-item .count{color:var(--muted);font-size:.72rem}
+.side-actions{display:grid;gap:6px}.btn{border:1px solid var(--border);background:var(--panel);color:var(--text);
+ padding:8px 11px;border-radius:9px;font-size:.8rem;transition:.15s}.btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(15,23,42,.12)}
+.primary{background:var(--accent);border-color:var(--accent);color:white}.danger{background:var(--danger);border-color:var(--danger);color:white}
+.ghost{background:transparent}.success{background:var(--success);border-color:var(--success);color:white}
+main{padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.top{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(420px,1.5fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:13px;box-shadow:var(--shadow)}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.card-head h2{font-size:.95rem}.muted{color:var(--muted);font-size:.76rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-bottom:8px}.field label{display:block;color:var(--muted);font-size:.74rem;margin:0 0 4px}
+.field input,.field textarea,.field select,.toolbar input,.toolbar select{
+ width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:9px;background:var(--panel2);color:var(--text);outline:none}
+.field textarea{min-height:62px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus,.toolbar input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+.toolbar{display:grid;grid-template-columns:minmax(180px,1fr) 130px 130px auto;gap:7px;align-items:center}
+.filters{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.filter{padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel2);font-size:.72rem}
+.filter.active{background:var(--soft);border-color:#a5b4fc}
+.bulk{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:.75rem;color:var(--muted)}
+.bulk-right{display:flex;gap:5px}
+.list{border:1px dashed var(--border);border-radius:12px;background:var(--panel);padding:5px;min-height:150px;max-height:calc(100vh - 325px);overflow:auto}
+.bookmark{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:start;padding:9px;border:1px solid transparent;border-radius:10px}
+.bookmark:hover{border-color:var(--border);background:var(--panel2)}.bookmark.dragging{opacity:.45}
+.star{border:0;background:none;font-size:1.05rem;color:#94a3b8;padding:1px}.star.on{color:#f59e0b}
+.bmain{min-width:0}.titleline{display:flex;align-items:center;gap:7px;min-width:0}.title{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.favpill,.folderpill,.tag{font-size:.66rem;padding:2px 6px;border-radius:999px;background:var(--soft);white-space:nowrap}
+.url{font-size:.75rem;color:var(--accent);display:block;overflow-wrap:anywhere;margin-top:2px;text-decoration:none}.url:hover{text-decoration:underline}
+.desc{font-size:.74rem;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.tag{color:var(--text)}
+.meta{display:flex;gap:9px;color:var(--muted);font-size:.66rem;margin-top:5px}.actions{display:flex;gap:4px;align-items:center}
+.iconbtn{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:7px;padding:4px 6px;font-size:.72rem}
+.empty{text-align:center;padding:40px 15px;color:var(--muted)}.empty h3{color:var(--text);margin-bottom:4px}
+.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:white;padding:10px 13px;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.3);opacity:0;pointer-events:none;transform:translateY(10px);transition:.2s;z-index:100}
+.toast.show{opacity:1;transform:none}.modal-bg{position:fixed;inset:0;background:rgba(2,6,23,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:15px}.modal-bg.open{display:flex}
+.modal{width:min(620px,100%);background:var(--panel);border:1px solid var(--border);border-radius:15px;padding:15px;box-shadow:0 25px 70px rgba(0,0,0,.45)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.modal-head h3{font-size:1rem}.close{border:0;background:none;color:var(--muted);font-size:1.4rem}
+.kbd{border:1px solid var(--border);background:var(--panel2);border-radius:5px;padding:1px 5px;font-size:.65rem}
+.notice{padding:7px 9px;border-radius:8px;background:var(--soft);font-size:.72rem;color:var(--muted);margin-bottom:8px}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr}.stats{grid-column:1/-1}.nav-list{max-height:180px}.top{grid-template-columns:1fr}}
+@media(max-width:700px){body{padding:8px}.app{min-height:calc(100vh - 16px)}header{flex-direction:column;align-items:flex-start}.header-actions{justify-content:flex-start}.layout{display:block}aside{display:block}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.grid2{grid-template-columns:1fr}.bookmark{grid-template-columns:auto minmax(0,1fr)}.actions{grid-column:2}.list{max-height:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">
+    <h1>📚 Jass Bookmark Vault</h1>
+    <p>Offline-first bookmark manager • fast search • favorites • folders • tags • backup</p>
+  </div>
+  <div class="header-actions">
+    <span class="chip" id="statusChip">Local storage</span>
+    <span class="chip" id="statsChip">0 bookmarks</span>
+    <button class="btn ghost" id="themeBtn">🌙 Theme</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="stats">
+    <div style="font-size:.8rem;font-weight:700">Library snapshot</div>
+    <div class="stats-grid">
+      <div class="stat"><small>Bookmarks</small><strong id="statTotal">0</strong></div>
+      <div class="stat"><small>Favorites</small><strong id="statFav">0</strong></div>
+      <div class="stat"><small>Folders</small><strong id="statFolders">0</strong></div>
+      <div class="stat"><small>Opened</small><strong id="statVisits">0</strong></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Library</div>
+    <ul class="nav-list" id="folderList"></ul>
+  </div>
+
+  <div>
+    <div class="section-title">Data & backup</div>
+    <div class="side-actions">
+      <button class="btn" id="importHtmlBtn">📥 Import browser HTML</button>
+      <input id="importHtmlInput" type="file" accept=".html" hidden>
+      <button class="btn" id="exportHtmlBtn">📤 Export browser HTML</button>
+      <button class="btn" id="exportJsonBtn">💾 Backup JSON</button>
+      <button class="btn" id="importJsonBtn">♻️ Restore JSON</button>
+      <input id="importJsonInput" type="file" accept=".json" hidden>
+      <button class="btn" id="exportCsvBtn">📊 Export CSV</button>
+    </div>
+  </div>
+
+  <div class="notice">
+    <b>Shortcuts</b><br>
+    <span class="kbd">Ctrl</span> + <span class="kbd">K</span> search ·
+    <span class="kbd">Ctrl</span> + <span class="kbd">N</span> new bookmark ·
+    <span class="kbd">Esc</span> close dialog
+  </div>
+</aside>
+
+<main>
+  <div class="top">
+    <section class="card">
+      <div class="card-head"><h2>➕ Add bookmark</h2><span class="muted" id="lastSaved"></span></div>
+      <form id="addForm">
+        <div class="field"><label>Title *</label><input id="title" required placeholder="e.g. MDN Web Docs"></div>
+        <div class="field"><label>URL *</label><input id="url" type="url" required placeholder="https://example.com"></div>
+        <div class="field"><label>Description / notes</label><textarea id="description" placeholder="Why is this useful?"></textarea></div>
+        <div class="grid2">
+          <div class="field"><label>Tags</label><input id="tags" placeholder="python, ai, docs"></div>
+          <div class="field"><label>Folder</label><input id="folder" list="folderOptions" placeholder="Learning"></div>
+        </div>
+        <datalist id="folderOptions"></datalist>
+        <div style="display:flex;justify-content:flex-end;gap:6px">
+          <button type="button" class="btn" id="clearFormBtn">Clear</button>
+          <button class="btn primary" type="submit">💾 Save bookmark</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>🔎 Find & organize</h2><span class="muted">Searches all fields</span></div>
+      <div class="toolbar">
+        <input id="search" placeholder="Search title, URL, notes, tags or folder…">
+        <select id="sort"><option value="custom">Custom order</option><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="az">Title A–Z</option><option value="za">Title Z–A</option><option value="popular">Most opened</option></select>
+        <select id="view"><option value="all">All items</option><option value="favorites">Favorites</option><option value="recent">Recently opened</option></select>
+        <button class="btn" id="clearSearch">Reset</button>
+      </div>
+      <div class="filters" id="tagFilters"></div>
+      <div class="bulk">
+        <label><input type="checkbox" id="selectAll"> Select visible</label>
+        <span id="selectedText">0 selected</span>
+        <div class="bulk-right">
+          <button class="btn" id="bulkFav">⭐ Favorite</button>
+          <button class="btn" id="bulkMove">📂 Move</button>
+          <button class="btn danger" id="bulkDelete">Delete</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="padding:9px">
+    <div class="card-head" style="padding:3px 4px 0"><h2 id="listTitle">All bookmarks</h2><span class="muted" id="resultCount"></span></div>
+    <div class="list" id="list"></div>
+  </section>
+</main>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitle">Edit bookmark</h3><button class="close" id="closeModal">×</button></div>
+    <form id="editForm">
+      <input id="editId" type="hidden">
+      <div class="field"><label>Title *</label><input id="editTitle" required></div>
+      <div class="field"><label>URL *</label><input id="editUrl" type="url" required></div>
+      <div class="field"><label>Description / notes</label><textarea id="editDescription"></textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Tags</label><input id="editTags"></div>
+        <div class="field"><label>Folder</label><input id="editFolder" list="folderOptions"></div>
+      </div>
+      <div class="modal-head" style="margin-top:5px">
+        <span class="muted">Created: <span id="editCreated"></span></span>
+        <div style="display:flex;gap:6px"><button type="button" class="btn" id="cancelEdit">Cancel</button><button class="btn primary">Save changes</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+class BookmarkVault{
+  constructor(){
+    this.key="jass_bookmark_vault_v3";
+    this.settingsKey="jass_bookmark_settings_v3";
+    this.data=this.load();
+    this.settings=Object.assign({theme:"dark",sort:"custom",view:"all",folder:"ALL",tag:"ALL"},this.safeJSON(localStorage.getItem(this.settingsKey),{}));
+    this.selected=new Set(); this.dragId=null; this.undoStack=null;
+    this.normalize(); this.bind(); this.applyTheme(); this.renderAll();
+  }
+  safeJSON(v,f){try{return v?JSON.parse(v):f}catch{return f}}
+  load(){
+    const modern=this.safeJSON(localStorage.getItem(this.key),null);
+    if(modern&&Array.isArray(modern.bookmarks)) return modern.bookmarks;
+    const old=this.safeJSON(localStorage.getItem("bookmarks_v2"),[]);
+    return Array.isArray(old)?old:[];
+  }
+  normalize(){
+    let changed=false, now=Date.now();
+    this.data.forEach((b,i)=>{
+      b.id=b.id||now+"_"+i+"_"+Math.random().toString(36).slice(2);
+      b.title=String(b.title||"(untitled)");
+      b.url=this.http(String(b.url||""));
+      b.description=String(b.description||"");
+      b.tags=Array.isArray(b.tags)?b.tags.filter(Boolean):[];
+      b.folder=String(b.folder||"General");
+      b.created=Number(b.created)||now-i;
+      b.updated=Number(b.updated)||b.created;
+      b.order=Number.isFinite(Number(b.order))?Number(b.order):b.created;
+      b.visitCount=Number(b.visitCount)||0;
+      b.favorite=Boolean(b.favorite);
+      b.lastVisited=Number(b.lastVisited)||0;
+      changed=true;
+    });
+    if(changed)this.save();
+  }
+  http(u){return u&&/^https?:\/\//i.test(u)?u:(u?"https://"+u:"")}
+  esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+  parseTags(s){return [...new Set(String(s||"").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean))]
+  }
+  save(){localStorage.setItem(this.key,JSON.stringify({version:3,updatedAt:new Date().toISOString(),bookmarks:this.data}));this.settingsSave()}
+  settingsSave(){localStorage.setItem(this.settingsKey,JSON.stringify(this.settings))}
+  toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>el.classList.remove("show"),2200)}
+  bind(){
+    id("addForm").addEventListener("submit",e=>{e.preventDefault();this.add()});
+    id("clearFormBtn").onclick=()=>id("addForm").reset();
+    id("search").oninput=()=>this.renderList();
+    id("sort").onchange=e=>{this.settings.sort=e.target.value;this.settingsSave();this.renderList()};
+    id("view").onchange=e=>{this.settings.view=e.target.value;this.renderList()};
+    id("clearSearch").onclick=()=>{id("search").value="";this.settings.tag="ALL";this.settings.folder="ALL";this.settings.view="all";id("view").value="all";this.renderAll()};
+    id("selectAll").onchange=e=>{this.selected.clear();if(e.target.checked)this.visible().forEach(b=>this.selected.add(b.id));this.renderList()};
+    id("bulkDelete").onclick=()=>this.bulkDelete();
+    id("bulkMove").onclick=()=>this.bulkMove();
+    id("bulkFav").onclick=()=>this.bulkFavorite();
+    id("themeBtn").onclick=()=>{this.settings.theme=this.settings.theme==="dark"?"light":"dark";this.applyTheme();this.settingsSave()};
+    id("importHtmlBtn").onclick=()=>id("importHtmlInput").click();
+    id("importHtmlInput").onchange=e=>e.target.files[0]&&this.importHTML(e.target.files[0]);
+    id("exportHtmlBtn").onclick=()=>this.exportHTML();
+    id("exportJsonBtn").onclick=()=>this.exportJSON();
+    id("importJsonBtn").onclick=()=>id("importJsonInput").click();
+    id("importJsonInput").onchange=e=>e.target.files[0]&&this.importJSON(e.target.files[0]);
+    id("exportCsvBtn").onclick=()=>this.exportCSV();
+    id("addForm").querySelector("#url").addEventListener("blur",e=>{if(e.target.value&&!/^https?:\/\//i.test(e.target.value))e.target.value=this.http(e.target.value)});
+    id("closeModal").onclick=()=>this.closeModal(); id("cancelEdit").onclick=()=>this.closeModal();
+    id("modalBg").onclick=e=>{if(e.target===id("modalBg"))this.closeModal()};
+    id("editForm").onsubmit=e=>{e.preventDefault();this.saveEdit()};
+    document.addEventListener("keydown",e=>{
+      if(e.key==="Escape")this.closeModal();
+      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();id("search").focus()}
+      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="n"){e.preventDefault();id("title").focus()}
+    });
+  }
+  applyTheme(){document.body.classList.toggle("dark",this.settings.theme==="dark");id("themeBtn").textContent=this.settings.theme==="dark"?"☀️ Light":"🌙 Dark"}
+  add(){
+    const title=id("title").value.trim(),url=this.http(id("url").value.trim());
+    if(!title||!url)return this.toast("Title and URL are required");
+    const dup=this.data.find(b=>b.url.toLowerCase()===url.toLowerCase());
+    if(dup&&!confirm("A bookmark with this URL already exists. Add another anyway?"))return;
+    const now=Date.now(),folder=id("folder").value.trim()||"General";
+    this.data.unshift({id:now+"_"+Math.random().toString(36).slice(2),title,url,description:id("description").value.trim(),
+      tags:this.parseTags(id("tags").value),folder,created:now,updated:now,order:now,visitCount:0,favorite:false,lastVisited:0});
+    this.save();id("addForm").reset();id("lastSaved").textContent="Saved just now";setTimeout(()=>id("lastSaved").textContent="",1800);
+    this.renderAll();this.toast("Bookmark saved");
+  }
+  visible(){
+    const q=id("search").value.trim().toLowerCase(), folder=this.settings.folder, tag=this.settings.tag;
+    let list=this.data.filter(b=>(folder==="ALL"||b.folder===folder)&&(tag==="ALL"||b.tags.includes(tag)));
+    if(this.settings.view==="favorites")list=list.filter(b=>b.favorite);
+    if(this.settings.view==="recent")list=list.filter(b=>b.lastVisited).sort((a,b)=>b.lastVisited-a.lastVisited);
+    if(q)list=list.filter(b=>[b.title,b.url,b.description,b.folder,...b.tags].join(" ").toLowerCase().includes(q));
+    if(this.settings.view!=="recent"){
+      switch(this.settings.sort){
+        case"newest":list.sort((a,b)=>b.created-a.created);break;
+        case"oldest":list.sort((a,b)=>a.created-b.created);break;
+        case"az":list.sort((a,b)=>a.title.localeCompare(b.title));break;
+        case"za":list.sort((a,b)=>b.title.localeCompare(a.title));break;
+        case"popular":list.sort((a,b)=>b.visitCount-a.visitCount);break;
+        default:list.sort((a,b)=>b.order-a.order);
+      }
+    }
+    return list;
+  }
+  renderAll(){this.renderFolders();this.renderStats();this.renderFilters();this.renderList();this.renderFolderOptions()}
+  renderStats(){
+    const total=this.data.length,fav=this.data.filter(b=>b.favorite).length,folders=new Set(this.data.map(b=>b.folder)).size,visits=this.data.reduce((n,b)=>n+b.visitCount,0);
+    id("statTotal").textContent=total;id("statFav").textContent=fav;id("statFolders").textContent=folders;id("statVisits").textContent=visits;
+    id("statsChip").textContent=`${total} bookmark${total===1?"":"s"} • ${fav} favorite${fav===1?"":"s"}`;
+  }
+  renderFolders(){
+    const counts=new Map();this.data.forEach(b=>counts.set(b.folder,(counts.get(b.folder)||0)+1));
+    const items=[["ALL","📚 All bookmarks",this.data.length],["FAV","⭐ Favorites",this.data.filter(b=>b.favorite).length],...Array.from(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(x=>[x[0],"📂 "+x[0],x[1]])];
+    id("folderList").innerHTML=items.map(([key,name,n])=>`<li class="nav-item ${this.settings.folder===key?"active":""}" data-folder="${this.esc(key)}"><span>${this.esc(name)}</span><span class="count">${n}</span></li>`).join("");
+    id("folderList").querySelectorAll(".nav-item").forEach(el=>el.onclick=()=>{const f=el.dataset.folder;this.settings.folder=f==="FAV"?"ALL":f;if(f==="FAV")this.settings.view="favorites";else if(this.settings.view==="favorites")this.settings.view="all";id("view").value=this.settings.view;this.settingsSave();this.renderAll()});
+  }
+  renderFolderOptions(){
+    const fs=[...new Set(this.data.map(b=>b.folder))].sort();id("folderOptions").innerHTML=fs.map(f=>`<option value="${this.esc(f)}">`).join("");
+  }
+  renderFilters(){
+    const counts=new Map();this.data.forEach(b=>b.tags.forEach(t=>counts.set(t,(counts.get(t)||0)+1)));
+    const tags=[["ALL","All tags",this.data.length],...Array.from(counts).sort((a,b)=>b[1]-a[1]).slice(0,14).map(x=>[x[0],x[0],x[1]])];
+    id("tagFilters").innerHTML=tags.map(([k,n,c])=>`<button class="filter ${this.settings.tag===k?"active":""}" data-tag="${this.esc(k)}">${this.esc(n)} · ${c}</button>`).join("");
+    id("tagFilters").querySelectorAll(".filter").forEach(el=>el.onclick=()=>{this.settings.tag=el.dataset.tag;this.settingsSave();this.renderList();this.renderFilters()});
+  }
+  renderList(){
+    const list=this.visible(),container=id("list");
+    id("sort").value=this.settings.sort;id("resultCount").textContent=`${list.length} shown`;
+    const names=this.settings.view==="favorites"?"Favorites":this.settings.view==="recent"?"Recently opened":this.settings.folder==="ALL"?"All bookmarks":this.settings.folder;
+    id("listTitle").textContent=names;
+    const visibleIds=new Set(list.map(b=>b.id));this.selected.forEach(x=>{if(!visibleIds.has(x))this.selected.delete(x)});
+    id("selectedText").textContent=`${this.selected.size} selected`;id("selectAll").checked=list.length>0&&list.every(b=>this.selected.has(b.id));
+    if(!list.length){container.innerHTML=`<div class="empty"><h3>No bookmarks found</h3><p>Try another search, filter, folder, or add a bookmark.</p></div>`;return}
+    container.innerHTML="";
+    list.forEach(b=>{
+      const el=document.createElement("article");el.className="bookmark";el.draggable=this.settings.sort==="custom"&&!id("search").value&&!this.settings.tag!=="ALL";el.dataset.id=b.id;
+      if(el.draggable){
+        el.ondragstart=()=>{this.dragId=b.id;el.classList.add("dragging")};el.ondragend=()=>el.classList.remove("dragging");
+        el.ondragover=e=>e.preventDefault();el.ondrop=e=>{e.preventDefault();this.reorder(this.dragId,b.id)}
+      }
+      el.innerHTML=`<input type="checkbox" class="pick" ${this.selected.has(b.id)?"checked":""} aria-label="Select bookmark">
+        <div class="bmain">
+          <div class="titleline"><button class="star ${b.favorite?"on":""}" title="Toggle favorite">${b.favorite?"★":"☆"}</button><span class="title" title="${this.esc(b.title)}">${this.esc(b.title)}</span><span class="folderpill">${this.esc(b.folder)}</span></div>
+          <a class="url" href="${this.esc(b.url)}" target="_blank" rel="noopener noreferrer">${this.esc(b.url)}</a>
+          ${b.description?`<div class="desc" title="${this.esc(b.description)}">${this.esc(b.description)}</div>`:""}
+          <div class="tags">${b.tags.map(t=>`<span class="tag">#${this.esc(t)}</span>`).join("")}</div>
+          <div class="meta"><span>Added ${new Date(b.created).toLocaleDateString()}</span><span>Opened ${b.visitCount}×</span>${b.lastVisited?`<span>Last ${new Date(b.lastVisited).toLocaleDateString()}</span>`:""}</div>
+        </div>
+        <div class="actions"><button class="iconbtn edit">Edit</button><button class="iconbtn del">Delete</button></div>`;
+      el.querySelector(".pick").onchange=e=>{e.target.checked?this.selected.add(b.id):this.selected.delete(b.id);this.renderList()};
+      el.querySelector(".star").onclick=()=>{b.favorite=!b.favorite;b.updated=Date.now();this.save();this.renderAll();this.toast(b.favorite?"Added to favorites":"Removed from favorites")};
+      el.querySelector(".url").onclick=()=>{b.visitCount++;b.lastVisited=Date.now();this.save();setTimeout(()=>this.renderStats(),0)};
+      el.querySelector(".edit").onclick=()=>this.openEdit(b.id);
+      el.querySelector(".del").onclick=()=>this.remove(b.id);
+      container.appendChild(el);
+    });
+  }
+  reorder(from,to){
+    if(!from||from===to)return;const list=this.visible(),a=list.findIndex(b=>b.id===from),t=list.findIndex(b=>b.id===to);if(a<0||t<0)return;
+    const ids=list.map(b=>b.id),[x]=ids.splice(a,1);ids.splice(t,0,x);const base=Date.now();ids.forEach((id,i)=>{const b=this.data.find(x=>x.id===id);if(b)b.order=base-i});
+    this.save();this.renderList();
+  }
+  openEdit(idv){
+    const b=this.data.find(x=>x.id===idv);if(!b)return;
+    id("editId").value=b.id;id("editTitle").value=b.title;id("editUrl").value=b.url;id("editDescription").value=b.description;id("editTags").value=b.tags.join(", ");id("editFolder").value=b.folder;id("editCreated").textContent=new Date(b.created).toLocaleString();id("modalBg").classList.add("open");id("editTitle").focus();
+  }
+  closeModal(){id("modalBg").classList.remove("open")}
+  saveEdit(){
+    const b=this.data.find(x=>x.id===id("editId").value);if(!b)return;
+    const title=id("editTitle").value.trim(),url=this.http(id("editUrl").value.trim());if(!title||!url)return this.toast("Title and URL are required");
+    Object.assign(b,{title,url,description:id("editDescription").value.trim(),tags:this.parseTags(id("editTags").value),folder:id("editFolder").value.trim()||"General",updated:Date.now()});
+    this.save();this.closeModal();this.renderAll();this.toast("Bookmark updated");
+  }
+  remove(idv){
+    const b=this.data.find(x=>x.id===idv);if(!b)return;
+    if(!confirm(`Delete "${b.title}"?`))return;
+    this.undoStack={bookmark:b,index:this.data.findIndex(x=>x.id===idv)};this.data=this.data.filter(x=>x.id!==idv);this.selected.delete(idv);this.save();this.renderAll();
+    const el=id("toast");el.innerHTML=`Deleted. <button style="margin-left:8px;border:0;border-radius:6px;padding:3px 7px" id="undoBtn">Undo</button>`;el.classList.add("show");id("undoBtn").onclick=()=>this.undo();
+    clearTimeout(this.undoTimer);this.undoTimer=setTimeout(()=>el.classList.remove("show"),5000);
+  }
+  undo(){if(!this.undoStack)return;this.data.splice(this.undoStack.index,0,this.undoStack.bookmark);this.undoStack=null;this.save();this.renderAll();id("toast").classList.remove("show");this.toast("Restored")}
+  bulkDelete(){
+    if(!this.selected.size)return this.toast("Nothing selected");
+    if(!confirm(`Delete ${this.selected.size} selected bookmark(s)?`))return;
+    const ids=new Set(this.selected);this.data=this.data.filter(b=>!ids.has(b.id));this.selected.clear();this.save();this.renderAll();this.toast("Selected bookmarks deleted");
+  }
+  bulkMove(){
+    if(!this.selected.size)return this.toast("Nothing selected");
+    const f=prompt("Move selected bookmarks to folder:","General");if(!f||!f.trim())return;
+    this.data.forEach(b=>{if(this.selected.has(b.id))b.folder=f.trim()});this.save();this.renderAll();this.toast("Bookmarks moved");
+  }
+  bulkFavorite(){
+    if(!this.selected.size)return this.toast("Nothing selected");
+    this.data.forEach(b=>{if(this.selected.has(b.id))b.favorite=true});this.save();this.renderAll();this.toast("Added to favorites");
+  }
+  download(content,name,type){
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)
+  }
+  exportJSON(){this.download(JSON.stringify({app:"Jass Bookmark Vault",version:3,exportedAt:new Date().toISOString(),bookmarks:this.data},null,2),"jass-bookmarks-backup.json","application/json");this.toast("JSON backup exported")}
+  exportHTML(){
+    const esc=this.esc,lines=["<!DOCTYPE NETSCAPE-Bookmark-file-1>","<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\">","<TITLE>Bookmarks</TITLE>","<H1>Bookmarks</H1>","<DL><p>"];
+    const folders={};this.data.forEach(b=>(folders[b.folder]??=[]).push(b));
+    Object.entries(folders).forEach(([f,items])=>{lines.push(`<DT><H3>${esc(f)}</H3><DL><p>`);items.forEach(b=>lines.push(`<DT><A HREF="${esc(b.url)}">${esc(b.title)}</A>`));lines.push("</DL><p>")});lines.push("</DL><p>");
+    this.download(lines.join("\n"),"jass-bookmarks.html","text/html");this.toast("Browser HTML exported")
+  }
+  exportCSV(){
+    const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,rows=[["Title","URL","Description","Folder","Tags","Favorite","Created","Opened","Last Visited"]];
+    this.data.forEach(b=>rows.push([b.title,b.url,b.description,b.folder,b.tags.join("|"),b.favorite?"Yes":"No",new Date(b.created).toISOString(),b.visitCount,b.lastVisited?new Date(b.lastVisited).toISOString():""]));
+    this.download(rows.map(r=>r.map(q).join(",")).join("\n"),"jass-bookmarks.csv","text/csv");this.toast("CSV exported")
+  }
+  importHTML(file){
+    const r=new FileReader();r.onload=()=>{const doc=new DOMParser().parseFromString(r.result,"text/html"),links=[...doc.querySelectorAll("a[href]")];if(!links.length)return this.toast("No links found");
+      let n=0;links.forEach((a,i)=>{const url=this.http(a.getAttribute("href")||"");if(!url)return;const exists=this.data.some(b=>b.url.toLowerCase()===url.toLowerCase());if(exists)return;
+        const now=Date.now()-i;this.data.push({id:now+"_"+Math.random().toString(36).slice(2),title:a.textContent.trim()||url,url,description:"",tags:[],folder:"Imported",created:now,updated:now,order:now,visitCount:0,favorite:false,lastVisited:0});n++});
+      this.save();this.renderAll();this.toast(`Imported ${n} new bookmark${n===1?"":"s"}`)};r.readAsText(file)
+  }
+  importJSON(file){
+    const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result),arr=Array.isArray(d)?d:d.bookmarks;if(!Array.isArray(arr))throw Error();
+      if(!confirm("Restore JSON? Existing bookmarks will be replaced."))return;this.data=arr;this.normalize();this.save();this.selected.clear();this.renderAll();this.toast("Backup restored")
+    }catch{this.toast("Invalid JSON backup")}};r.readAsText(file)
+  }
+}
+const id=x=>document.getElementById(x);
+new BookmarkVault();
+</script>
+</body>
+</html>
